@@ -1,0 +1,94 @@
+Sub Main()
+    Call Korektura
+    Call RoztrideniKategorii
+    
+End Sub
+
+Sub Korektura()
+    'Upraví velká malá písmena jména, příjmení, přezdívky a ořeže přebytečné mezery
+    
+    Dim sloupecJmeno As Range
+    Dim jmeno As Range
+    Dim sloupecPrijmeni As Range
+    Dim sloupecPrezdivka As Range
+    Dim posledniZaznam As Integer
+    
+    Application.ScreenUpdating = False
+    posledniZaznam = (Columns("B").Find("", after:=Cells(4, "B")).Row) - 1
+    Set sloupecJmeno = Range("B5:D" & posledniZaznam)
+    
+    For Each jmeno In sloupecJmeno.Cells
+        If jmeno.Value <> "" Then
+            jmeno.Value = Trim(jmeno)
+            jmeno.Value = UCase(Left(jmeno, 1)) & LCase(Right(jmeno, Len(jmeno) - 1))
+        End If
+    Next
+    Application.ScreenUpdating = True
+End Sub
+
+Sub RoztrideniKategorii()
+    ' Projde seznam závodníků a roztřídí je podle kategorií
+    
+    Dim sloupecCislo As Integer
+    Dim sloupecMesto As Integer
+    Dim sloupecKategorie As Integer
+    Dim listLos As Worksheet
+    Dim listDatabaze As Worksheet
+    Dim radekLos As Integer
+    Dim kategorie As String
+    Dim volnaPozice As Range
+    Dim bunkaKategorie As Range
+    Dim startovniCislo As Integer
+    
+    Set listLos = Sheets("Los")
+    Set listDatabaze = Sheets("databaze")
+    
+    'Před roztříděním vyčistí stránku od předchozí roztřídění
+    listLos.Cells.Clear
+    
+    'Najde sloupce startovního čísla, města a kategorie
+    With listDatabaze
+        sloupecCislo = .Rows(3).Find("p.č.").Column
+        sloupecMesto = .Rows(3).Find("město").Column
+        sloupecKategorie = .Rows(3).Find("kategorie").Column
+        
+        .Columns(sloupecCislo).Copy listLos.Columns("A")
+        .Columns(sloupecMesto).Copy listLos.Columns("B")
+        .Columns(sloupecKategorie).Copy listLos.Columns("C")
+    End With
+        
+    listLos.Rows(4).Delete
+    listLos.Rows(3).Delete
+    listLos.Rows(2).Delete
+    
+    'Řádek po řádku prochází soutěžící a startovní čísla přirazuje do kategorií
+    radekLos = 2
+    While Len(listLos.Cells(radekLos, "A")) <> 0
+        startovniCislo = listLos.Cells(radekLos, "A")
+        kategorie = listLos.Cells(radekLos, "C")
+        Set bunkaKategorie = listLos.Rows(1).Find(kategorie)
+        
+        'Pokud kategorii nenajde, zavolá funkci vytvoření kategorie
+        If bunkaKategorie Is Nothing Then
+            Set bunkaKategorie = VytvorKategorii(kategorie)
+        End If
+        
+        Set volnaPozice = listLos.Columns(bunkaKategorie.Column).Find("", after:=Cells(1, bunkaKategorie.Column))
+        volnaPozice.Cells.Value = startovniCislo
+        radekLos = radekLos + 1
+    Wend
+End Sub
+
+Function VytvorKategorii(kategorie As String) As Range
+    'Najde volný sloupec a vytvoří chybějící kategorii
+    ' a vrátí bunku vytvořené kategorie
+    
+    Dim volnySloupec As Range
+    
+    Set volnySloupec = Rows(1).Find("", after:=Cells(1, 4))
+    volnySloupec.Cells.Value = kategorie
+    volnySloupec.Offset(0, 1) = kategorie
+    Set VytvorKategorii = volnySloupec
+End Function
+
+
